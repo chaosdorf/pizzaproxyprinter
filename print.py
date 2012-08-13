@@ -1,5 +1,15 @@
 #!/usr/bin/python3
 
+# 13.08.2012 by Oerb
+# use as ever you want
+# ****************************
+# PizzaProxyPrinter
+# ****************************
+# www.oerb.de
+# github/chaosdorf
+#
+
+
 import Image, ImageDraw, ImageFont #, wx
 from Pos import Pos
 import subprocess
@@ -23,7 +33,12 @@ class printBill(object):
         # TEST
         #subprocess.call( callstring , shell=True ) 
         self._linefeed_Y = 0
+
+        # Parameters
+        self.font_path = "/usr/share/fonts/truetype/msttcorefonts/arial.ttf"
+
     
+    # MwSt(Tax) / Brutto Visible or Not
     @property
     def PrintMwst(self):
         return self._mwst
@@ -34,6 +49,8 @@ class printBill(object):
             #print("NO MWST")
             self._mwst = value
     
+    # Create your personal Endmessage 
+    # standard is "Happy Hacking"
     @property
     def EndMsg(self):
         return self._endmsg    
@@ -42,7 +59,10 @@ class printBill(object):
     def EndMsg(self,value):
         if type(value) == str:
             self._endmsg = value
-               
+    
+    # change the local Printername 
+    # standard is "TSP143-(STR_T-001)
+    # so you know where it is designet for ;)
     @property
     def printer(self):
         return "test"
@@ -51,6 +71,9 @@ class printBill(object):
     def printer(self, value):
         self._printer = value
     
+    # Documentname is for choose a diferen Filename
+    # Read/Write the Output Printpage
+    # could be usefull some day ;)
     @property
     def document(self):
         pass
@@ -59,7 +82,9 @@ class printBill(object):
     def printer(self, value):
         self._document = value
 
-               
+    # takes an array of Property Classes Type Pos
+    # see example at the End how to use
+    # it proofs the type !!!
     @property
     def PosArray(self):
         return self._PosArray
@@ -71,8 +96,7 @@ class printBill(object):
         for element in value:
             #print(type(element) + " " + type(PosProof))
             if not type(element) == type(PosProof):
-                # Exeption muss noch geschrieben werden hilfsweise das
-                return "Error Type Missmatch. Need Type Pos"
+                # type proof for good objectorientation
                 self._TypeOK = False
                 break
             else:
@@ -85,15 +109,15 @@ class printBill(object):
         
         # the main to Print Image
         doc = Image.new("RGB",(1000,4000),"#ffffff")
-        # paste the logo into the main image @ Postition 0,0
+        # paste the logo into the main image @ Postition x0,y100
         doc.paste(self._logo,(0,100))
         # get the Date_Image to merge
         datadoc = self._getDataImage()
      
         # Resize Data_Image
-        newdatadoc = datadoc.resize((1000,8000))
+#        newdatadoc = datadoc.resize((1000,8000))
         # Merge Data_Image with Print Image
-        doc.paste(newdatadoc,(0,700))
+        doc.paste(datadoc,(0,700))
         
         # Get the Billnumber Image to merge
         reNr = self._PosArray[0].reNr
@@ -112,78 +136,170 @@ class printBill(object):
         doc.save(self._document, "PNG")  
         
 
-       
+    # use the Shell lpr command to print the imagefile  
     def printDocument(self):
         self._callstring = "lpr -P '" + self._printer + "' " + self._document
         subprocess.call(self._callstring , shell=True )  
 
+    # return a sized Image-module
+    def _getSizedImage(self, filename, xsize, ysize):
+        img = Image.open(filename)
+        sizedimg = img.resize((xsize,ysize))
+        return sizedimg 
+    
+    # returns an image from text in the given fontsize
+    def _getTextImage(self, text, font_size, colour):
+        font = ImageFont.truetype(self.font_path, font_size)
+        img_size = font.getsize(text) # returns ( X, Y )
+        image = Image.new("RGB", img_size, "#ffffff")
+        draw = ImageDraw.Draw(image)
+        x, y = 0, 0
+        draw.text((x, y), text, fill=colour, font=font)
+#        draw.rectangle(((x, y), (x + img_size[0], y + img_size[1])), outline="green")
+
+        return image
+        
+         
+    def _getLineImg(self, height, colour):
+        img = Image.new("RGB", (990, height), colour)
+        img_GP = Image.new("RGB", (10, height), colour)
+        return (img, img_GP)
+
+    # sends the Logo as Image in resized Format
     def _loadLogo(self):
         logo = Image.open(self._LogoFilename)
         self._logo = logo.resize((400,400))
+    
+    def _getBillImage(self):
+        # calculates Bill and return Billlist as an Array of Images
+        font_size = 70
+        colour = "#000000"
+        imagelist = [] 
        
-    def _getDataImage(self):
-        # calc Bill and return Billlist as Image
-        lf = 14 # Linefeed
-
-        # another Image for the Data (to resize later)
-        datadoc = Image.new("RGB",(200,2000),"#ffffff")
-        draw = ImageDraw.Draw(datadoc)
-        draw.setink("#000000")
-                                
-        # BillHeader
-        HeaderL1= "------- Bestellung -----  in Euro \n "
-        HeaderL2= "Nr  Anz. Bez.               GP\n"
-        HeaderL3= "--------------------------------"
-        draw.text((0,0), HeaderL1)
-        draw.text((0,2*lf),HeaderL2)
-        draw.text((0,3*lf),HeaderL3)
+        # Header
+        HeaderL1 = "   Bestellung   "   
+        HeaderL1_GP = "in Euro "
+        HeaderL2 = "Nr  Anz. Bez. "              
+        HeaderL2_GP = "GP  "
         
-        # Bill List
+        img = self._getTextImage(HeaderL1, font_size + 10, colour)
+        img_GP = self._getTextImage(HeaderL1_GP, font_size + 10, colour)
+        imagelist.append((img, img_GP))
+        imagelist.append(self._getLineImg(50, "#ffffff"))
+
+        img = self._getTextImage(HeaderL2, font_size, colour)
+        img_GP = self._getTextImage(HeaderL2_GP, font_size, colour)
+        imagelist.append((img, img_GP))
+
+        imagelist.append(self._getLineImg(5, "#ffffff"))
+        imagelist.append(self._getLineImg(2, "#000000"))
+        imagelist.append(self._getLineImg(50, "#ffffff"))
+                        
+
+       
+        
         Summe = 0.00
-        Y = 4*lf # as Textposition        
+
         for pos in self._PosArray:
             GP = pos.Menge * pos.EP
+
             shortpostext = self._postextShorter(pos.postext)
-            printline = str(pos.nr) + "# x " + str(pos.Menge) + " " + shortpostext + " " + "%3.2f" % (GP) + "\n"
-            draw.text((0,Y), printline)
-            Y = Y + lf
+
+            printline = str(pos.nr) + "# x " + str(pos.Menge) + " " + shortpostext + " " 
+            print_GP = "%3.2f" % (GP)
+
+            img = self._getTextImage(printline, font_size, colour) 
+            img_GP = self._getTextImage(print_GP, font_size, colour)
+            imagelist.append((img, img_GP))
+            
             Summe = Summe + GP
+            
         # Sum and Tax
         Tax = 0.19 * Summe
         Brutto = Summe + Tax
-
+        
+        Netto_txt =  "              Netto:" 
+        Netto_GP = "%5.2f" % Summe 
+        Tax_txt =    "              MwSt. 19%:" 
+        Tax_GP = "%5.2f" % Tax
+        Brutto_txt = "              Brutto:" 
+        Brutto_GP = "%5.2f" % Brutto
+        Summe_txt =  "              Summe:" 
+        Summe_GP = "%5.2f" % Summe
 
         if self._mwst:
             # Print MwSt
-            EndL1 = "Netto     " + "%5.2f" % Summe + "\n"
-            EndL2 = "MwSt. 19% " + "%5.2f" % Tax + "\n"
-            EndL3 = "Brutto    " + "%5.2f" % Brutto + "\n"
+            imagelist.append(self._getLineImg(50, "#ffffff"))
+            imagelist.append(self._getLineImg(2, "#000000"))
 
-            Y = Y + lf
-            draw.text((50,Y),EndL2)
-            Y = Y + lf
-            draw.text((50,Y),EndL3)
+            img = self._getTextImage(Netto_txt, font_size, colour)
+            img_GP = self._getTextImage(Netto_GP, font_size, colour)
+            imagelist.append((img, img_GP))
+            img = self._getTextImage(Tax_txt, font_size, colour)
+            img_GP = self._getTextImage(Tax_GP, font_size, colour)
+            imagelist.append((img, img_GP))
+
+            #imagelist.append(self._getLineImg(5, "#ffffff"))
+            imagelist.append(self._getLineImg(2, "#000000"))
+            
+            img = self._getTextImage(Brutto_txt, font_size, colour)
+            img_GP = self._getTextImage(Brutto_GP, font_size, colour)
+            imagelist.append((img, img_GP))
+            
         else:
-            EndL1 = "Summe :   " + "%.2f" % Summe + "\n"
-            Y = Y + lf
-            draw.text((50,Y),EndL1)
+            # do not print MwSt just an Order
+            imagelist.append(self._getLineImg(50, "#ffffff"))
+            imagelist.append(self._getLineImg(2, "#000000"))
 
-
-        # EndMessage
-
-        Endl4 = "-----------------------------------"
-        Endl5 = self._endmsg
-        Endl6 = "-----------------------------------"
-        Y = Y + lf + 50
-        draw.text((0,Y),Endl4)
-        Y = Y + lf * 2
-        draw.text((0,Y),Endl5)
-        Y = Y + lf * 2
-        draw.text((0,Y),Endl6)
+            img = self._getTextImage(Summe_txt, font_size, colour)
+            img_GP = self._getTextImage(Summe_GP, font_size, colour)
+            imagelist.append((img, img_GP))
+                                                
         
-        self._linefeed_Y = Y
-        return datadoc
-    
+        # End Message
+        imagelist.append(self._getLineImg(150, "#ffffff"))
+        #imagelist.append(self._getLineImg(4, "#000000"))
+
+        img = self._getTextImage(self._endmsg, font_size, "red")
+        img_GP = self._getTextImage(" ", font_size + 15, colour)
+        imagelist.append((img, img_GP))
+
+        
+        
+        return imagelist                     
+
+    def _getDataImage(self):
+        # merges the Imagelist to one Image
+        mainImgSize = 1000
+        imagelist = self._getBillImage()
+
+        newimg_width = 0
+        newimg_height = 0
+
+        for img, img_GP in imagelist:
+            width, height = img.size
+            newimg_height = newimg_height + height
+
+#            if width > newimg_width:
+#                newimg_width = width
+
+        newImg = Image.new("RGB",(mainImgSize, newimg_height),"#ffffff")
+        x, y = 0, 0
+
+        for img, img_GP in imagelist:
+            width, height = img.size
+            GP_width, GP_height = img_GP.size
+            newImg.paste(img, (x, y))
+            x_GP = mainImgSize - GP_width
+#            print("y_GP: " + str(x_GP))
+#            print("GP_width: " + str(GP_width))
+#            print("img width: " + str(width))
+            newImg.paste(img_GP, (x_GP, y))
+            y = y + height 
+
+        return newImg
+                
+       
     def _getReNr_Image(self, reNr):
         # another Image for the Billnumber (to resize later)
         reNrImg = Image.new("RGB",(40,20),"#ffffff")
@@ -222,10 +338,10 @@ class printBill(object):
         
 
 
-        
+# Test / Help Example        
 
 BillPrinter = printBill()
-BillPrinter.PrintMwst = False
+BillPrinter.PrintMwst = True
 BillPrinter.EndMsg = "Danke!"
 
 posArray = []
@@ -250,5 +366,5 @@ posArray.append(pos2)
 
 BillPrinter.PosArray = posArray
 BillPrinter.generatePrintFile()
-BillPrinter.printDocument()
+#BillPrinter.printDocument()
 
