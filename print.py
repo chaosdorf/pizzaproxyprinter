@@ -32,11 +32,11 @@ class printBill(object):
         self._endmsg = "Happy Hacking"
         # TEST
         #subprocess.call( callstring , shell=True ) 
-        self._linefeed_Y = 0
-
+        self._nextline_Y = 0
+        self._print_Y = 200
         # Parameters
         self.font_path = "/usr/share/fonts/truetype/msttcorefonts/arial.ttf"
-
+        self.i = 0
     
     # MwSt(Tax) / Brutto Visible or Not
     @property
@@ -82,6 +82,20 @@ class printBill(object):
     def printer(self, value):
         self._document = value
 
+    # If you want no Bill Printer just LineText than
+    # set True
+    @property
+    def linePrinter(self):
+        return self._linePrinter
+    @linePrinter.setter
+    def linePrinter(self, value):
+        if type(value) == bool:
+            self._linePrinter = True
+        else:
+            print("Error: Property linePrint has to be Bool")
+
+
+
     # takes an array of Property Classes Type Pos
     # see example at the End how to use
     # it proofs the type !!!
@@ -94,7 +108,6 @@ class printBill(object):
         # needed for Type-Proof  of incoming PosArray
         PosProof = Pos()
         for element in value:
-            #print(type(element) + " " + type(PosProof))
             if not type(element) == type(PosProof):
                 # type proof for good objectorientation
                 self._TypeOK = False
@@ -107,38 +120,53 @@ class printBill(object):
     def generatePrintFile(self):
         self._loadLogo()
         
+        # get the Date_Image to merge
+        datadoc = self._getDataImage()
+        # calculate Bill Y toot define the lp option size for 
+        # Printing without foo whitelines
+        width, height = datadoc.size
+        h = int((height + 1900) / 4000)
+        if h == 0 :
+            h = 4000
+        else:
+            if (h%2 == 0):  # pruefung ob h gerade ist
+                h = h * 4000
+            else:
+                h = (h + 1) * 4000  
+        doc_size = ( 1200, h )
+        self._print_Y = h / 20
         # the main to Print Image
-        doc = Image.new("RGB",(1000,4000),"#ffffff")
+        # Formatanpassung, so dass keine 
+        doc = Image.new("RGB",(doc_size),"#ffffff")
         # paste the logo into the main image @ Postition x0,y100
-        doc.paste(self._logo,(0,100))
+        doc.paste(self._logo,(200,0))
         # get the Date_Image to merge
         datadoc = self._getDataImage()
      
-        # Resize Data_Image
-#        newdatadoc = datadoc.resize((1000,8000))
         # Merge Data_Image with Print Image
-        doc.paste(datadoc,(0,700))
+        doc.paste(datadoc,(0,1900))
         
         # Get the Billnumber Image to merge
         reNr = self._PosArray[0].reNr
         billnr = self._getReNr_Image(reNr)
         # Resize Billnumber_Image
-        newbillnr = billnr.resize((500,200))
+        newbillnr = billnr.resize((600,300))
         # Merge Billnumber_Image with Print Image
-        doc.paste(newbillnr,(500,20))
+        doc.paste(newbillnr,(400,820))   
 
         # Get A QR-Code-Image of ID-URL in Form:
         # http://ihex.de/foo where foo ist the Billnumber
         qrmsg = "http://ihex.de/" + str(reNr)
         qrimage = self._getQR_Image(qrmsg)
-        doc.paste(qrimage,(500,200))
+        doc.paste(qrimage,(200,1000))
         # Save PrintImage as PNG File
+        #doc = doc.resize((700,2000))
         doc.save(self._document, "PNG")  
         
 
     # use the Shell lpr command to print the imagefile  
     def printDocument(self):
-        self._callstring = "lpr -P '" + self._printer + "' " + self._document
+        self._callstring = "lp -o scaling=" + str(self._print_Y)  + "  -d '" + self._printer + "' " + self._document 
         subprocess.call(self._callstring , shell=True )  
 
     # return a sized Image-module
@@ -157,22 +185,26 @@ class printBill(object):
         draw.text((x, y), text, fill=colour, font=font)
 #        draw.rectangle(((x, y), (x + img_size[0], y + img_size[1])), outline="green")
 
+        #image.save("textimg" + str(self.i) + ".png")
+        #self.i +=1
         return image
         
          
     def _getLineImg(self, height, colour):
-        img = Image.new("RGB", (990, height), colour)
+        img = Image.new("RGB", (1189, height), colour)
         img_GP = Image.new("RGB", (10, height), colour)
+        img.save("lineImg" + str(self.i) + ".png")
+
         return (img, img_GP)
 
     # sends the Logo as Image in resized Format
     def _loadLogo(self):
         logo = Image.open(self._LogoFilename)
-        self._logo = logo.resize((400,400))
+        self._logo = logo.resize((800,800))
     
     def _getBillImage(self):
         # calculates Bill and return Billlist as an Array of Images
-        font_size = 70
+        font_size = 80
         colour = "#000000"
         imagelist = [] 
        
@@ -182,8 +214,8 @@ class printBill(object):
         HeaderL2 = "Nr  Anz. Bez. "              
         HeaderL2_GP = "GP  "
         
-        img = self._getTextImage(HeaderL1, font_size + 10, colour)
-        img_GP = self._getTextImage(HeaderL1_GP, font_size + 10, colour)
+        img = self._getTextImage(HeaderL1, font_size, colour)
+        img_GP = self._getTextImage(HeaderL1_GP, font_size, colour)
         imagelist.append((img, img_GP))
         imagelist.append(self._getLineImg(50, "#ffffff"))
 
@@ -239,7 +271,7 @@ class printBill(object):
             img_GP = self._getTextImage(Tax_GP, font_size, colour)
             imagelist.append((img, img_GP))
 
-            #imagelist.append(self._getLineImg(5, "#ffffff"))
+            imagelist.append(self._getLineImg(5, "#ffffff"))
             imagelist.append(self._getLineImg(2, "#000000"))
             
             img = self._getTextImage(Brutto_txt, font_size, colour)
@@ -258,10 +290,10 @@ class printBill(object):
         
         # End Message
         imagelist.append(self._getLineImg(150, "#ffffff"))
-        #imagelist.append(self._getLineImg(4, "#000000"))
+        imagelist.append(self._getLineImg(4, "#000000"))
 
         img = self._getTextImage(self._endmsg, font_size, "red")
-        img_GP = self._getTextImage(" ", font_size + 15, colour)
+        img_GP = self._getTextImage(" ", font_size , colour)
         imagelist.append((img, img_GP))
 
         
@@ -270,11 +302,11 @@ class printBill(object):
 
     def _getDataImage(self):
         # merges the Imagelist to one Image
-        mainImgSize = 1000
+        mainImgSize = 1200
         imagelist = self._getBillImage()
-
         newimg_width = 0
         newimg_height = 0
+
 
         for img, img_GP in imagelist:
             width, height = img.size
@@ -285,7 +317,7 @@ class printBill(object):
 
         newImg = Image.new("RGB",(mainImgSize, newimg_height),"#ffffff")
         x, y = 0, 0
-
+        i = 0
         for img, img_GP in imagelist:
             width, height = img.size
             GP_width, GP_height = img_GP.size
@@ -295,6 +327,8 @@ class printBill(object):
 #            print("GP_width: " + str(GP_width))
 #            print("img width: " + str(width))
             newImg.paste(img_GP, (x_GP, y))
+            #newImg.save("img-img_GP" + str(i) + ".png")
+            #i +=1
             y = y + height 
 
         return newImg
@@ -332,7 +366,7 @@ class printBill(object):
         #qrfile = open("qr.png","w")
         version , size, QRimage = qrencode.encode(qrtext, version=0 , level=0, hint=2, case_sensitive=True)
         #qrfile.close()
-        sizedQRimage = QRimage.resize((450,450))
+        sizedQRimage = QRimage.resize((800,800))
         return sizedQRimage
                             
         
@@ -359,12 +393,13 @@ pos2.EP = 6.30
 pos2.Menge = 3.0
 pos1.reNr = "A0C12"
 
-posArray.append(pos1)
-posArray.append(pos2)
-
-
+i = 2
+while i > 0:
+    posArray.append(pos1)
+    posArray.append(pos2)
+    i -= 1
 
 BillPrinter.PosArray = posArray
 BillPrinter.generatePrintFile()
-#BillPrinter.printDocument()
+BillPrinter.printDocument()
 
