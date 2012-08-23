@@ -125,7 +125,7 @@ class printBill(object):
         # calculate Bill Y toot define the lp option size for 
         # Printing without foo whitelines
         width, height = datadoc.size
-        h = int((height + 1900) / 4000)
+        h = int((height + 2100) / 4000)
         if h == 0 :
             h = 4000
         else:
@@ -139,26 +139,31 @@ class printBill(object):
         # Formatanpassung, so dass keine 
         doc = Image.new("RGB",(doc_size),"#ffffff")
         # paste the logo into the main image @ Postition x0,y100
-        doc.paste(self._logo,(200,0))
+        doc.paste(self._logo,(0,0))
         # get the Date_Image to merge
         datadoc = self._getDataImage()
      
         # Merge Data_Image with Print Image
-        doc.paste(datadoc,(0,1900))
+        doc.paste(datadoc,(0,1800))
         
         # Get the Billnumber Image to merge
         reNr = self._PosArray[0].reNr
-        billnr = self._getReNr_Image(reNr)
+        #billnr = self._getReNr_Image(reNr)
+        oldFontpath = self.font_path
+        self.font_path = "/usr/share/fonts/truetype/ubuntu-font-family/UbuntuMono-B.ttf"
+        newbillnr = self._getTextImage(reNr,300,"red")
+        newbillnr = newbillnr.rotate(90)
+        self.font_path = oldFontpath
         # Resize Billnumber_Image
-        newbillnr = billnr.resize((600,300))
+        #newbillnr = billnr.resize((600,300))
         # Merge Billnumber_Image with Print Image
-        doc.paste(newbillnr,(400,820))   
+        doc.paste(newbillnr,(900,50))   
 
         # Get A QR-Code-Image of ID-URL in Form:
         # http://ihex.de/foo where foo ist the Billnumber
         qrmsg = "http://ihex.de/" + str(reNr)
         qrimage = self._getQR_Image(qrmsg)
-        doc.paste(qrimage,(200,1000))
+        doc.paste(qrimage,(0,850))
         # Save PrintImage as PNG File
         #doc = doc.resize((700,2000))
         doc.save(self._document, "PNG")  
@@ -200,7 +205,7 @@ class printBill(object):
     # sends the Logo as Image in resized Format
     def _loadLogo(self):
         logo = Image.open(self._LogoFilename)
-        self._logo = logo.resize((800,800))
+        self._logo = logo.resize((700,700))
     
     def _getBillImage(self):
         # calculates Bill and return Billlist as an Array of Images
@@ -366,7 +371,7 @@ class printBill(object):
         #qrfile = open("qr.png","w")
         version , size, QRimage = qrencode.encode(qrtext, version=0 , level=0, hint=2, case_sensitive=True)
         #qrfile.close()
-        sizedQRimage = QRimage.resize((800,800))
+        sizedQRimage = QRimage.resize((700,700))
         return sizedQRimage
                             
         
@@ -375,7 +380,7 @@ class printBill(object):
 # Test / Help Example        
 
 BillPrinter = printBill()
-BillPrinter.PrintMwst = True
+BillPrinter.PrintMwst = False
 BillPrinter.EndMsg = "Danke!"
 
 posArray = []
@@ -393,7 +398,7 @@ pos2.EP = 6.30
 pos2.Menge = 3.0
 pos1.reNr = "A0C12"
 
-i = 2
+i = 5
 while i > 0:
     posArray.append(pos1)
     posArray.append(pos2)
