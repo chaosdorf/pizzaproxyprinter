@@ -30,7 +30,7 @@ class printBill(object):
         self._LogoFilename = "icon.bmp"
         self._mwst = True 
         self._endmsg = "Happy Hacking"
-        # TEST
+        self._layout = 1
         #subprocess.call( callstring , shell=True ) 
         self._nextline_Y = 0
         self._print_Y = 200
@@ -116,6 +116,15 @@ class printBill(object):
                 self._TypeOK = True
         if self._TypeOK:
             self._PosArray = value
+    
+    @property
+    def Layout(self):
+        return self._layout
+
+    @Layout.setter
+    def Layout(self, value):
+        self._layout = value
+
 
     def generatePrintFile(self):
         self._loadLogo()
@@ -241,8 +250,12 @@ class printBill(object):
             GP = pos.Menge * pos.EP
 
             shortpostext = self._postextShorter(pos.postext)
-
-            printline = str(pos.nr) + "# x " + str(pos.Menge) + " " + shortpostext + " " 
+            if self._layout == 2:
+                printline = str(pos.nr) + "    " + str(int(pos.Menge)) + " " + shortpostext + " "
+            
+            else :
+                printline = str(pos.nr) + "# x " + str(pos.Menge) + " " + shortpostext + " " 
+            
             print_GP = "%3.2f" % (GP)
 
             img = self._getTextImage(printline, font_size, colour) 
@@ -384,6 +397,7 @@ class main(object):
         BillPrinter = printBill()
         BillPrinter.PrintMwst = False
         BillPrinter.EndMsg = "Danke!"
+        BillPrinter.Layout = 1
 
         posArray = []
         pos1 = Pos()
