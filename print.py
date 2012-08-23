@@ -151,19 +151,19 @@ class printBill(object):
         #billnr = self._getReNr_Image(reNr)
         oldFontpath = self.font_path
         self.font_path = "/usr/share/fonts/truetype/ubuntu-font-family/UbuntuMono-B.ttf"
-        newbillnr = self._getTextImage(reNr,300,"red")
+        newbillnr = self._getTextImage(reNr,250,"red")
         newbillnr = newbillnr.rotate(90)
         self.font_path = oldFontpath
         # Resize Billnumber_Image
         #newbillnr = billnr.resize((600,300))
         # Merge Billnumber_Image with Print Image
-        doc.paste(newbillnr,(900,50))   
+        doc.paste(newbillnr,(900,20))   
 
         # Get A QR-Code-Image of ID-URL in Form:
         # http://ihex.de/foo where foo ist the Billnumber
         qrmsg = "http://ihex.de/" + str(reNr)
         qrimage = self._getQR_Image(qrmsg)
-        doc.paste(qrimage,(0,850))
+        doc.paste(qrimage,(200,850))
         # Save PrintImage as PNG File
         #doc = doc.resize((700,2000))
         doc.save(self._document, "PNG")  
@@ -371,40 +371,44 @@ class printBill(object):
         #qrfile = open("qr.png","w")
         version , size, QRimage = qrencode.encode(qrtext, version=0 , level=0, hint=2, case_sensitive=True)
         #qrfile.close()
-        sizedQRimage = QRimage.resize((700,700))
+        sizedQRimage = QRimage.resize((800,800))
         return sizedQRimage
                             
         
 
+class main(object):
+    def __init__(self):
 
-# Test / Help Example        
+        # Test / Help Example        
 
-BillPrinter = printBill()
-BillPrinter.PrintMwst = False
-BillPrinter.EndMsg = "Danke!"
+        BillPrinter = printBill()
+        BillPrinter.PrintMwst = False
+        BillPrinter.EndMsg = "Danke!"
 
-posArray = []
-pos1 = Pos()
-pos1.nr = 1
-pos1.postext = "Salami"
-pos1.EP = 5.80
-pos1.Menge = 1.0
-pos1.reNr = "A0C12"
+        posArray = []
+        pos1 = Pos()
+        pos1.nr = 1
+        pos1.postext = "Salami"
+        pos1.EP = 5.80
+        pos1.Menge = 1.0
+        pos1.reNr = "A0C12"
 
-pos2 = Pos()
-pos2.nr = 2
-pos2.postext = "Schinken"
-pos2.EP = 6.30
-pos2.Menge = 3.0
-pos1.reNr = "A0C12"
+        pos2 = Pos()
+        pos2.nr = 2
+        pos2.postext = "Schinken"
+        pos2.EP = 6.30
+        pos2.Menge = 3.0
+        pos1.reNr = "A0C12"
 
-i = 5
-while i > 0:
-    posArray.append(pos1)
-    posArray.append(pos2)
-    i -= 1
+        i = 5
+        while i > 0:
+            posArray.append(pos1)
+            posArray.append(pos2)
+            i -= 1
 
-BillPrinter.PosArray = posArray
-BillPrinter.generatePrintFile()
-BillPrinter.printDocument()
+        BillPrinter.PosArray = posArray
+        BillPrinter.generatePrintFile()
+        BillPrinter.printDocument()
 
+if __name__== "__main__":
+    start = main()
