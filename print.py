@@ -182,9 +182,9 @@ class printBill(object):
     # use the Shell lpr command to print the imagefile  
     def printDocument(self):
         #self._callstring = "lp -o scaling=" + str(self._print_Y)  + "  -d '" + self._printer + "' " + self._document 
-        self._callstring = "lp"
+        self._callstring = "lp "
         if conf['scaling'] == True:
-            self._callstring += " -o scaling=" + str(self._print_Y)  + " "
+            self._callstring += "-o scaling=" + str(self._print_Y)  + " "
         self._callstring  += "-d '" + self._printer + "' " + self._document
         subprocess.call(self._callstring , shell=True )  
 
