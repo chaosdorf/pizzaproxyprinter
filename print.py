@@ -15,19 +15,21 @@ from Pos import Pos
 import subprocess
 import sys
 import string
+import conf
 
 # QR Code Bindings
 import qrencode # ubuntu install python-qrencode
 
 class printBill(object):
-    def __init__(self):
+    def __init__(self, conf):
+        self.conf = conf
         # Data must be given as array of Pos-Classes see Pos.py
         self._PosArray = []
         # needed for Type-Proof  of incoming PosArray
         PosProof = Pos()
-        self._printer = "TSP143-(STR_T-001)"
+        self._printer = self.conf['printer']
         self._document = "printfile.tmp"
-        self._LogoFilename = "icon.bmp"
+        self._LogoFilename = self.conf['LogoFilename']
         self._mwst = True 
         self._endmsg = "Happy Hacking"
         self._layout = 1
@@ -35,7 +37,7 @@ class printBill(object):
         self._nextline_Y = 0
         self._print_Y = 200
         # Parameters
-        self.font_path = "/usr/share/fonts/truetype/msttcorefonts/arial.ttf"
+        self.font_path = self.conf['font_path']
         self.i = 0
     
     # MwSt(Tax) / Brutto Visible or Not
@@ -159,7 +161,7 @@ class printBill(object):
         reNr = self._PosArray[0].reNr
         #billnr = self._getReNr_Image(reNr)
         oldFontpath = self.font_path
-        self.font_path = "/usr/share/fonts/truetype/ubuntu-font-family/UbuntuMono-B.ttf"
+        self.font_path = self.conf['font_path_bill']
         newbillnr = self._getTextImage(reNr,250,"red")
         newbillnr = newbillnr.rotate(90)
         self.font_path = oldFontpath
@@ -180,7 +182,11 @@ class printBill(object):
 
     # use the Shell lpr command to print the imagefile  
     def printDocument(self):
-        self._callstring = "lp -o scaling=" + str(self._print_Y)  + "  -d '" + self._printer + "' " + self._document 
+        #self._callstring = "lp -o scaling=" + str(self._print_Y)  + "  -d '" + self._printer + "' " + self._document 
+        self._callstring = "lp "
+        if self.conf['scaling'] == True:
+            self._callstring += "-o scaling=" + str(self._print_Y)  + " "
+        self._callstring  += "-d '" + self._printer + "' " + self._document
         subprocess.call(self._callstring , shell=True )  
 
     # return a sized Image-module
@@ -394,7 +400,7 @@ class main(object):
 
         # Test / Help Example        
 
-        BillPrinter = printBill()
+        BillPrinter = printBill(conf.conf)
         BillPrinter.PrintMwst = False
         BillPrinter.EndMsg = "Danke!"
         BillPrinter.Layout = 1
